@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Eldermere — Reinos de Ceniza</title>
+<link rel="stylesheet" href="css/style.css">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' fill='%232a1f14'/><rect x='6' y='6' width='20' height='20' fill='%237a5c2e'/><rect x='10' y='10' width='12' height='12' fill='%23b08a3e'/></svg>">
+<script type="importmap">
+{ "imports": { "three": "./vendor/three.module.js" } }
+</script>
+</head>
+<body>
+<div id="game-container"></div>
+
+<!-- Pantalla de título -->
+<div id="title-screen">
+  <div class="title-fog"></div>
+  <div class="title-inner">
+    <div class="title-crest">&#9876;</div>
+    <h1>ELDERMERE</h1>
+    <h2>~ Reinos de Ceniza ~</h2>
+    <p class="title-lore">Los antiguos reinos yacen en guerra. Bajo la tierra dormida<br>
+    aguardan ruinas olvidadas y riquezas malditas. Forja tu leyenda.</p>
+    <button id="btn-start" class="parchment-btn big">⚔ &nbsp;Comenzar Aventura&nbsp; ⚔</button>
+    <div class="title-controls">
+      <span><b>WASD</b> moverse</span><span><b>Ratón</b> mirar</span><span><b>Clic izq</b> minar/atacar</span>
+      <span><b>Clic der</b> colocar</span><span><b>Espacio</b> saltar</span><span><b>E</b> inventario</span>
+      <span><b>C</b> crafting</span><span><b>F</b> interactuar/montar</span><span><b>1-9</b> hotbar</span>
+    </div>
+    <div class="title-version">v1.0 · Un mundo procedural de fantasía oscura · Sin conexión, 100% local</div>
+  </div>
+</div>
+
+<!-- HUD -->
+<div id="hud" class="hidden">
+  <div id="crosshair">+</div>
+  <div id="status-bars">
+    <div class="bar-wrap"><div class="bar-label">♥</div><div class="bar"><div id="hp-bar" class="bar-fill hp"></div></div></div>
+    <div class="bar-wrap"><div class="bar-label">🍖</div><div class="bar"><div id="food-bar" class="bar-fill food"></div></div></div>
+    <div class="bar-wrap"><div class="bar-label">⚡</div><div class="bar"><div id="stam-bar" class="bar-fill stam"></div></div></div>
+  </div>
+  <div id="hotbar"></div>
+  <div id="clock-panel" class="parchment-panel small">
+    <div id="clock-icon">☀</div>
+    <div id="clock-text">Día 1 — Mañana</div>
+    <div id="season-text">🌱 Primavera</div>
+    <div id="weather-text">Despejado</div>
+  </div>
+  <div id="biome-panel" class="parchment-panel small"><span id="biome-text">Pradera</span></div>
+  <div id="message-log"></div>
+  <div id="interact-prompt" class="hidden"></div>
+  <div id="boss-bar-wrap" class="hidden"><div id="boss-name">Guardián de las Ruinas</div><div class="bar boss"><div id="boss-bar" class="bar-fill boss"></div></div></div>
+</div>
+
+<!-- Inventario -->
+<div id="inventory-panel" class="parchment-panel window hidden">
+  <div class="window-title">🎒 Inventario <span class="close-hint">[E]</span></div>
+  <div id="inventory-grid"></div>
+  <div class="window-foot">Arrastra o haz clic para mover · clic derecho: dividir</div>
+</div>
+
+<!-- Crafting -->
+<div id="crafting-panel" class="parchment-panel window hidden">
+  <div class="window-title">⚒ Fragua y Crafteo <span class="close-hint">[C]</span></div>
+  <div id="craft-tabs">
+    <button class="tab active" data-tab="basic">Básico</button>
+    <button class="tab" data-tab="forge">⚒ Forja</button>
+    <button class="tab" data-tab="alchemy">⚗ Alquimia</button>
+    <button class="tab" data-tab="build">🏰 Construcción</button>
+  </div>
+  <div id="craft-list"></div>
+</div>
+
+<!-- Diario / Lore / Facciones -->
+<div id="journal-panel" class="parchment-panel window hidden">
+  <div class="window-title">📜 Crónicas de Eldermere <span class="close-hint">[J]</span></div>
+  <div id="journal-tabs">
+    <button class="tab active" data-tab="lore">Historia</button>
+    <button class="tab" data-tab="factions">Facciones</button>
+    <button class="tab" data-tab="quests">Hazañas</button>
+  </div>
+  <div id="journal-content"></div>
+</div>
+
+<!-- Diálogo NPC -->
+<div id="dialog-panel" class="parchment-panel window hidden">
+  <div class="window-title" id="dialog-name">Aldeano</div>
+  <div id="dialog-text"></div>
+  <div id="dialog-options"></div>
+</div>
+
+<!-- Pausa -->
+<div id="pause-panel" class="parchment-panel window hidden">
+  <div class="window-title">⚜ Eldermere — Pausa</div>
+  <button id="btn-resume" class="parchment-btn">Reanudar</button>
+  <button id="btn-help" class="parchment-btn">Ayuda / Controles</button>
+  <button id="btn-mute" class="parchment-btn">🔊 Sonido: ON</button>
+</div>
+
+<!-- Ayuda -->
+<div id="help-panel" class="parchment-panel window hidden">
+  <div class="window-title">📖 Controles <span class="close-hint">[Esc]</span></div>
+  <div class="help-grid">
+    <div><b>WASD</b> — Moverse</div><div><b>Ratón</b> — Mirar</div>
+    <div><b>Espacio</b> — Saltar / nadar</div><div><b>Shift</b> — Correr</div>
+    <div><b>Clic izquierdo</b> — Minar / Atacar</div><div><b>Clic derecho</b> — Colocar bloque / Usar</div>
+    <div><b>E</b> — Inventario</div><div><b>C</b> — Crafteo</div>
+    <div><b>J</b> — Crónicas</div><div><b>F</b> — Interactuar / Montar</div>
+    <div><b>1–9</b> — Barra rápida</div><div><b>Esc</b> — Pausa</div>
+  </div>
+  <div class="window-foot">Sobrevive: come, forja armas, cultiva, doma caballos, explora mazmorras y gana renombre entre las facciones.</div>
+</div>
+
+<div id="loading-screen">
+  <div class="loading-inner">
+    <div class="title-crest small">⚒</div>
+    <div id="loading-text">Forjando el mundo de Eldermere…</div>
+    <div class="loading-bar"><div id="loading-fill"></div></div>
+  </div>
+</div>
+
+<div id="damage-vignette"></div>
+<div id="fade-layer"></div>
+
+<script type="module" src="js/main.js"></script>
+</body>
+</html>
