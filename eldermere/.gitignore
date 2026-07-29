@@ -1,0 +1,3 @@
+core
+*.png
+dev/__pycache__/

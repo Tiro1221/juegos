@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32">
+  <rect width="32" height="32" fill="#1a1410"/>
+  <!-- torch handle -->
+  <rect x="14" y="18" width="4" height="12" fill="#6b4423"/>
+  <rect x="14" y="18" width="2" height="12" fill="#8a5a2f"/>
+  <!-- torch head -->
+  <rect x="12" y="14" width="8" height="5" fill="#4a3220"/>
+  <!-- flame -->
+  <rect x="14" y="4" width="4" height="4" fill="#ff9d2e"/>
+  <rect x="13" y="6" width="6" height="4" fill="#ff7a1a"/>
+  <rect x="12" y="9" width="8" height="4" fill="#ffb84d"/>
+  <rect x="14" y="6" width="2" height="4" fill="#ffe08a"/>
+  <!-- sparks -->
+  <rect x="10" y="3" width="2" height="2" fill="#ffcf6b"/>
+  <rect x="21" y="6" width="2" height="2" fill="#ffcf6b"/>
+</svg>
