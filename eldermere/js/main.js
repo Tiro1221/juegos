@@ -3,7 +3,7 @@ import * as THREE from 'three';
 import { CONFIG, BLOCKS, ITEMS, BIOMES } from './config.js';
 import { buildTextureAtlas } from './textures.js';
 import { World } from './world.js';
-import { biomeAt } from './worldgen.js';
+import { biomeAt, columnData } from './worldgen.js';
 import { Sky } from './sky.js';
 import { Player } from './player.js';
 import { EntityManager } from './entities.js';
@@ -52,15 +52,17 @@ class Game {
     this.bindButtons();
     this.animate = this.animate.bind(this);
     requestAnimationFrame(this.animate);
-    this.simulateLoading();
   }
 
   // ---------- Render ----------
   setupRenderer() {
-    this.renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
+    // modo ligero para pruebas o equipos modestos: ?lowfx=1
+    this.lowFx = new URLSearchParams(location.search).get('lowfx') === '1';
+    if (this.lowFx) { CONFIG.RENDER_DIST = 3; }
+    this.renderer = new THREE.WebGLRenderer({ antialias: !this.lowFx, powerPreference: 'high-performance' });
     this.renderer.setSize(innerWidth, innerHeight);
-    this.renderer.setPixelRatio(Math.min(devicePixelRatio, 1.75));
-    this.renderer.shadowMap.enabled = true;
+    this.renderer.setPixelRatio(this.lowFx ? 1 : Math.min(devicePixelRatio, 1.75));
+    this.renderer.shadowMap.enabled = !this.lowFx;
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;   // sombras suaves
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
     $('game-container').appendChild(this.renderer.domElement);
@@ -89,14 +91,6 @@ class Game {
     this.ui = new UI(this);
     this.player = new Player(this.world, this.camera, this.scene);
     this.entities = new EntityManager(this.scene, this.world, this);
-    // pre-generar chunks del spawn de forma sincrónica
-    this.world.update(this.spawnPoint.x, this.spawnPoint.z, 999);
-    let guard = 0;
-    while (this.world.pendingProps.length === 0 && guard++ < 3) this.world.update(this.spawnPoint.x, this.spawnPoint.z, 999);
-    this.consumeProps();
-    const sy = this.world.surfaceHeight(8, 8) + 1;
-    this.spawnPoint.set(8.5, sy + 1, 8.5);
-    this.player.pos.copy(this.spawnPoint);
     // luces puntuales de antorchas cercanas al jugador (máx 6)
     this.torchLights = [];
     for (let i = 0; i < 6; i++) {
@@ -104,6 +98,71 @@ class Game {
       this.scene.add(l);
       this.torchLights.push(l);
     }
+    // Buscar un buen punto de spawn (cerca del 0,0, en tierra y fuera del agua)
+    const sx = 8, sz = 8;
+    const col = columnData(sx, sz);
+    let gy = col.h;
+    if (gy <= CONFIG.SEA_LEVEL) gy = CONFIG.SEA_LEVEL + 2;
+    this.spawnPoint.set(sx + 0.5, gy + 2, sz + 0.5);
+    this.player.pos.copy(this.spawnPoint);
+    this.player.pos.copy(this.spawnPoint);
+    // Pre-generar el mundo alrededor del spawn ANTES de mostrar el título
+    this.preloadWorld();
+  }
+
+  // Pre-genera todos los chunks del radio de renderizado de forma escalonada
+  preloadWorld() {
+    const R = CONFIG.RENDER_DIST;
+    const total = (2 * R + 1) * (2 * R + 1);
+    const pcx = Math.floor(this.spawnPoint.x / CONFIG.CHUNK), pcz = Math.floor(this.spawnPoint.z / CONFIG.CHUNK);
+    const queue = [];
+    for (let dx = -R; dx <= R; dx++) for (let dz = -R; dz <= R; dz++) queue.push([pcx + dx, pcz + dz]);
+    queue.sort((a, b) => (Math.hypot(a[0] - pcx, a[1] - pcz) - Math.hypot(b[0] - pcx, b[1] - pcz)));
+    let done = 0;
+    const step = () => {
+      const t0 = performance.now();
+      let batch = 0;
+      // lotes por tiempo con mínimo de 5 chunks/frame (máquinas lentas incluidas)
+      while (queue.length && (performance.now() - t0 < 14 || batch < 5)) {
+        const [cx, cz] = queue.shift();
+        this.world.ensureChunk(cx, cz);
+        done++; batch++;
+      }
+      const pct = Math.round((done / total) * 100);
+      $('loading-fill').style.width = pct + '%';
+      $('loading-text').textContent = `Forjando el mundo de Eldermere… ${done}/${total} regiones`;
+      if (queue.length) { requestAnimationFrame(step); return; }
+      // mallas iniciales
+      let meshed = 0;
+      const meshStep = () => {
+        const m0 = performance.now();
+        let mbatch = 0;
+        for (const [, ch] of this.world.chunks) {
+          if (ch.dirty && (performance.now() - m0 < 14 || mbatch < 5)) { this.world.buildMesh(ch); meshed++; mbatch++; }
+        }
+        if ([...this.world.chunks.values()].some((c) => c.dirty)) { requestAnimationFrame(meshStep); return; }
+        this.consumeProps();
+        // ajustar altura del spawn al terreno real ya generado
+        const gy = this.world.surfaceHeight(Math.floor(this.spawnPoint.x), Math.floor(this.spawnPoint.z)) + 1;
+        this.spawnPoint.y = gy + 1;
+        this.player.pos.copy(this.spawnPoint);
+        // diagnóstico de generación del mundo
+        let tris = 0;
+        for (const [, ch] of this.world.chunks) for (const m of ch.meshes) tris += (m.geometry.index ? m.geometry.index.count : 0) / 3;
+        const spawnBlock = this.world.getBlock(Math.floor(this.spawnPoint.x), gy - 1, Math.floor(this.spawnPoint.z));
+        console.warn(`[Eldermere] MUNDO GENERADO: ${this.world.chunks.size} chunks, ${Math.round(tris)} triángulos en mallas, altura spawn=${gy}, bloque bajo spawn=${spawnBlock}`);
+        // Prueba de humo: renderizar un frame apuntando al terreno y contar triángulos dibujados
+        this.camera.position.set(this.spawnPoint.x, gy + 8, this.spawnPoint.z + 14);
+        this.camera.lookAt(this.spawnPoint.x, gy, this.spawnPoint.z);
+        this.renderer.render(this.scene, this.camera);
+        console.warn(`[Eldermere] SMOKE TEST — triángulos dibujados en pantalla: ${this.renderer.info.render.triangles}, llamadas de dibujo: ${this.renderer.info.render.calls}`);
+        $('loading-text').textContent = 'El mundo aguarda. Forja tu leyenda.';
+        $('loading-fill').style.width = '100%';
+        setTimeout(() => { $('loading-screen').classList.add('hidden'); }, 500);
+      };
+      requestAnimationFrame(meshStep);
+    };
+    requestAnimationFrame(step);
   }
 
   // consume props de chunks recién generados: NPCs, cofres, cultivos, mobs, antorchas
@@ -262,18 +321,7 @@ class Game {
     this.ui.message('💡 Pulsa J para leer las crónicas del mundo.');
     this.ui.refreshAll();
   }
-  simulateLoading() {
-    // breve pantalla de carga estética
-    let p = 0;
-    const iv = setInterval(() => {
-      p += 25;
-      $('loading-fill').style.width = Math.min(100, p) + '%';
-      if (p >= 100) {
-        clearInterval(iv);
-        setTimeout(() => $('loading-screen').classList.add('hidden'), 300);
-      }
-    }, 90);
-  }
+
 
   // ---------- Clic izquierdo: minar / atacar ----------
   onLeftClick() {

@@ -34,13 +34,14 @@ export class World {
   key(cx, cz) { return cx + ',' + cz; }
 
   // ---------- Acceso a bloques (coordenadas de mundo) ----------
+  // Internamente data guarda IDs numéricos; la API pública usa nombres (strings)
   getBlock(wx, wy, wz) {
     if (wy < 0 || wy >= WORLD_H) return wy < 0 ? 'bedrock' : 'air';
     const cx = Math.floor(wx / CHUNK), cz = Math.floor(wz / CHUNK);
     const ch = this.chunks.get(this.key(cx, cz));
     if (!ch) return 'air';
     const lx = wx - cx * CHUNK, lz = wz - cz * CHUNK;
-    return ch.data[idx(lx, wy, lz)];
+    return ID_TO_BLOCK[ch.data[idx(lx, wy, lz)]] || 'air';
   }
   setBlock(wx, wy, wz, name) {
     if (wy < 0 || wy >= WORLD_H) return;
@@ -48,7 +49,8 @@ export class World {
     const ch = this.chunks.get(this.key(cx, cz));
     if (!ch) return;
     const lx = wx - cx * CHUNK, lz = wz - cz * CHUNK;
-    ch.data[idx(lx, wy, lz)] = name;
+    const b = BLOCKS[name];
+    ch.data[idx(lx, wy, lz)] = b ? b.id : 0;
     ch.dirty = true;
     // marcar vecinos si está en el borde
     if (lx === 0) this.markDirty(cx - 1, cz);
@@ -72,11 +74,11 @@ export class World {
     const k = this.key(cx, cz);
     if (this.chunks.has(k)) return this.chunks.get(k);
     const gen = generateChunk(cx, cz);
-    // convertir nombres -> ids, aplicando edits del jugador
+    // convertir nombres -> ids numéricos (gen.data es un Array de strings)
     const data = new Uint8Array(CHUNK * CHUNK * WORLD_H);
     for (let i = 0; i < data.length; i++) {
       const name = gen.data[i];
-      data[i] = typeof name === 'string' ? (BLOCKS[name] ? BLOCKS[name].id : 0) : 0;
+      data[i] = typeof name === 'string' ? (BLOCKS[name] ? BLOCKS[name].id : 0) : (name || 0);
     }
     const chunk = { data, props: gen.props, meshes: [], dirty: true, cx, cz };
     this.chunks.set(k, chunk);

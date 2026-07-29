@@ -84,17 +84,13 @@ export function columnData(x, z) {
 
 // ---------- Minerales ----------
 function oreBlock(wx, wy, wz) {
-  // vetas 3D por tipo con distinta profundidad
-  const v1 = fbm3(wx * 0.09, wy * 0.09, wz * 0.09, 2, SEED + 11);
-  if (wy < 46 && v1 > 0.72) return 'coalOre';
-  const v2 = fbm3(wx * 0.075 + 300, wy * 0.075, wz * 0.075, 2, SEED + 22);
-  if (wy < 38 && v2 > 0.74) return 'ironOre';
-  const v3 = fbm3(wx * 0.07 + 800, wy * 0.07, wz * 0.07 + 800, 2, SEED + 33);
-  if (wy < 22 && v3 > 0.755) return 'goldOre';
-  const v4 = fbm3(wx * 0.065 + 1500, wy * 0.065, wz * 0.065 + 1500, 2, SEED + 44);
-  if (wy < 14 && v4 > 0.76) return 'mithrilOre';
-  const v5 = fbm3(wx * 0.11 + 2200, wy * 0.11, wz * 0.11 + 2200, 2, SEED + 55);
-  if (wy < 26 && v5 > 0.775) return 'crystalOre';
+  // vetas 3D por tipo con distinta profundidad (cortocircuito por altura = más rápido)
+  if (wy >= 46) return null;
+  if (wy < 46) { const v1 = fbm3(wx * 0.09, wy * 0.09, wz * 0.09, 2, SEED + 11); if (v1 > 0.72) return 'coalOre'; }
+  if (wy < 38) { const v2 = fbm3(wx * 0.075 + 300, wy * 0.075, wz * 0.075, 2, SEED + 22); if (v2 > 0.74) return 'ironOre'; }
+  if (wy < 26) { const v5 = fbm3(wx * 0.11 + 2200, wy * 0.11, wz * 0.11 + 2200, 2, SEED + 55); if (v5 > 0.775) return 'crystalOre'; }
+  if (wy < 22) { const v3 = fbm3(wx * 0.07 + 800, wy * 0.07, wz * 0.07 + 800, 2, SEED + 33); if (v3 > 0.755) return 'goldOre'; }
+  if (wy < 14) { const v4 = fbm3(wx * 0.065 + 1500, wy * 0.065, wz * 0.065 + 1500, 2, SEED + 44); if (v4 > 0.76) return 'mithrilOre'; }
   return null;
 }
 
@@ -117,7 +113,8 @@ function isCave(wx, wy, wz, surfaceH) {
 // ---------- Genera un chunk completo: devuelve { data:Uint8Array, props:Map } ----------
 // props: cosas fuera de rejilla (posiciones de NPCs, cultivos, cofres…) que main usará
 export function generateChunk(cx, cz) {
-  const data = new Uint8Array(CHUNK * CHUNK * WORLD_H);
+  // Array de strings con nombres de bloque (world.js los convierte a IDs numéricos)
+  const data = new Array(CHUNK * CHUNK * WORLD_H).fill('air');
   const props = { npcSpawns: [], mobSpawns: [], chests: [], crops: [], torches: [], structures: [] };
   const idx = (x, y, z) => (y * CHUNK + z) * CHUNK + x;
   const B = (name) => name;   // alias legible; world.js resolverá el id
