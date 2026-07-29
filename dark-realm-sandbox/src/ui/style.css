@@ -1,0 +1,353 @@
+/* ============================================================================
+   Dark Realm — UI stylesheet. Aged parchment + weathered wood aesthetic.
+   Fully responsive: desktop mouse/keyboard HUD and mobile touch controls.
+============================================================================ */
+
+/* Using system serif fallbacks (no external font CDN dependency) so the game
+   works fully offline / behind restrictive network sandboxes. */
+
+:root {
+  --font-display: 'Cinzel', 'Trajan Pro', Georgia, 'Times New Roman', serif;
+  --font-fancy: 'IM Fell English SC', Georgia, serif;
+  --font-body: 'EB Garamond', Georgia, 'Times New Roman', serif;
+}
+
+:root {
+  --parchment: #e8d9b0;
+  --parchment-dark: #c9b384;
+  --wood-dark: #2b1c10;
+  --wood-mid: #4a3220;
+  --wood-light: #6b4a2c;
+  --ember: #d9772f;
+  --ember-glow: #ff9a3c;
+  --blood: #8a2020;
+  --ink: #2a1c10;
+  --health-color: #b8342f;
+  --stamina-color: #e0b23a;
+  --hunger-color: #7a9a3a;
+  --warmth-color: #c9622f;
+}
+
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+html, body, #app {
+  margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden;
+  font-family: var(--font-body);
+  background: #000;
+  touch-action: none;
+}
+
+#game-canvas {
+  position: absolute; inset: 0; width: 100%; height: 100%; display: block; outline: none;
+}
+
+.hidden { display: none !important; }
+
+/* ---------------- Parchment overlay panels ---------------- */
+.parchment-overlay {
+  position: absolute; inset: 0; z-index: 50;
+  display: flex; align-items: center; justify-content: center;
+  background: radial-gradient(ellipse at center, rgba(10,8,5,0.55), rgba(5,4,2,0.92));
+  backdrop-filter: blur(2px);
+  padding: 16px;
+}
+
+.wood-frame {
+  background: linear-gradient(180deg, var(--parchment) 0%, var(--parchment-dark) 100%);
+  border: 10px solid transparent;
+  border-image: repeating-linear-gradient(135deg, var(--wood-mid) 0 8px, var(--wood-dark) 8px 16px) 24;
+  box-shadow: 0 0 0 4px var(--wood-dark), 0 20px 60px rgba(0,0,0,0.7), inset 0 0 40px rgba(90,60,20,0.25);
+  border-radius: 6px;
+  padding: 28px 34px;
+  max-width: 560px;
+  width: 100%;
+  max-height: 88vh;
+  overflow-y: auto;
+  color: var(--ink);
+  position: relative;
+}
+
+.wood-frame::before {
+  content: '';
+  position: absolute; inset: 6px;
+  border: 2px solid rgba(90,60,20,0.35);
+  border-radius: 3px;
+  pointer-events: none;
+}
+
+.game-title {
+  font-family: var(--font-display);
+  font-weight: 800;
+  text-align: center;
+  font-size: clamp(28px, 6vw, 46px);
+  letter-spacing: 3px;
+  color: var(--wood-dark);
+  text-shadow: 2px 2px 0 rgba(217,119,47,0.4);
+  margin: 0 0 6px;
+}
+.game-title .subtitle {
+  display: block;
+  font-family: var(--font-fancy);
+  font-size: 0.4em;
+  letter-spacing: 4px;
+  color: var(--blood);
+  margin-top: 4px;
+}
+
+.panel-title {
+  font-family: var(--font-display);
+  text-align: center;
+  color: var(--wood-dark);
+  border-bottom: 3px double var(--wood-mid);
+  padding-bottom: 10px;
+  margin-top: 0;
+}
+
+.lore-blurb {
+  font-style: italic;
+  text-align: center;
+  line-height: 1.5;
+  margin: 14px 0 22px;
+  color: #3a2a18;
+}
+
+.menu-panel { text-align: center; }
+.menu-footer { margin-top: 14px; font-size: 12px; opacity: 0.7; }
+
+.btn-medieval {
+  display: block; width: 100%;
+  margin: 10px 0;
+  padding: 13px 18px;
+  font-family: var(--font-display);
+  font-size: 16px;
+  letter-spacing: 1px;
+  color: var(--parchment);
+  background: linear-gradient(180deg, var(--wood-light), var(--wood-dark));
+  border: 2px solid var(--wood-dark);
+  border-radius: 5px;
+  cursor: pointer;
+  box-shadow: 0 3px 0 rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.15);
+  transition: transform 0.08s, box-shadow 0.08s;
+}
+.btn-medieval:hover { background: linear-gradient(180deg, #7c5734, var(--wood-mid)); }
+.btn-medieval:active { transform: translateY(2px); box-shadow: 0 1px 0 rgba(0,0,0,0.4); }
+.btn-secondary { background: linear-gradient(180deg, #6a6357, #3a352c); }
+
+.howto-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 8px 20px;
+  font-size: 14px; margin-bottom: 18px;
+}
+
+/* ---------------- HUD ---------------- */
+#hud { position: absolute; inset: 0; pointer-events: none; z-index: 20; }
+
+#hud-top-left {
+  position: absolute; top: 14px; left: 14px;
+  display: flex; flex-direction: column; gap: 6px;
+  width: 220px;
+}
+.stat-bar-wrap { display: flex; align-items: center; gap: 6px; }
+.stat-icon { width: 20px; text-align: center; filter: drop-shadow(1px 1px 1px #000); }
+.stat-bar {
+  flex: 1; height: 14px; border-radius: 4px;
+  background: rgba(20,14,8,0.75);
+  border: 2px solid var(--wood-dark);
+  overflow: hidden;
+  box-shadow: inset 0 2px 4px rgba(0,0,0,0.6);
+}
+.stat-fill { height: 100%; width: 100%; transition: width 0.25s ease; }
+.stat-bar.health .stat-fill { background: linear-gradient(90deg, #7a1a1a, var(--health-color)); }
+.stat-bar.stamina .stat-fill { background: linear-gradient(90deg, #a5821f, var(--stamina-color)); }
+.stat-bar.hunger .stat-fill { background: linear-gradient(90deg, #4f6b1f, var(--hunger-color)); }
+.stat-bar.warmth .stat-fill { background: linear-gradient(90deg, #8a3d1a, var(--warmth-color)); }
+
+#hud-top-right {
+  position: absolute; top: 14px; right: 14px;
+  display: flex; flex-direction: column; gap: 6px; align-items: flex-end;
+}
+.wood-badge {
+  background: linear-gradient(180deg, var(--wood-light), var(--wood-mid));
+  border: 2px solid var(--wood-dark);
+  color: var(--parchment);
+  padding: 5px 12px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-family: var(--font-fancy);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.5);
+  white-space: nowrap;
+}
+
+#crosshair {
+  position: absolute; top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  color: #fff; font-size: 18px;
+  text-shadow: 0 0 3px #000, 0 0 3px #000;
+  opacity: 0.8;
+}
+
+#mining-progress-wrap {
+  position: absolute; top: 56%; left: 50%; transform: translateX(-50%);
+  width: 90px; height: 7px; background: rgba(0,0,0,0.5); border-radius: 4px;
+  border: 1px solid #000; overflow: hidden;
+}
+#mining-progress-fill { height: 100%; width: 0%; background: var(--ember-glow); }
+
+#interact-hint, #mount-hint {
+  position: absolute; top: 62%; left: 50%; transform: translateX(-50%);
+}
+
+#hotbar {
+  position: absolute; bottom: 14px; left: 50%; transform: translateX(-50%);
+  display: flex; gap: 5px;
+  background: rgba(20,14,8,0.55);
+  padding: 6px; border-radius: 8px;
+  border: 2px solid var(--wood-dark);
+  pointer-events: auto;
+}
+.hotbar-slot {
+  width: 46px; height: 46px;
+  background: linear-gradient(180deg, #d9c497, #b89a63);
+  border: 2px solid var(--wood-dark);
+  border-radius: 4px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 22px;
+  position: relative;
+  cursor: pointer;
+}
+.hotbar-slot.selected { border-color: var(--ember-glow); box-shadow: 0 0 8px var(--ember-glow); }
+.hotbar-slot .count {
+  position: absolute; bottom: 1px; right: 3px; font-size: 10px; color: #2a1c10; font-weight: bold;
+  text-shadow: 1px 1px 0 #fff;
+}
+.hotbar-slot .durability-bar { position: absolute; bottom: 2px; left: 3px; right: 3px; height: 3px; background: #2a1c10; border-radius: 2px; }
+.hotbar-slot .durability-fill { height: 100%; background: #6ec93a; border-radius: 2px; }
+
+#damage-vignette {
+  position: absolute; inset: 0;
+  box-shadow: inset 0 0 140px 40px rgba(160,0,0,0);
+  transition: box-shadow 0.15s;
+}
+#damage-vignette.active { box-shadow: inset 0 0 160px 60px rgba(160,0,0,0.55); }
+
+#water-overlay {
+  position: absolute; inset: 0;
+  background: rgba(40,110,150,0.25);
+  backdrop-filter: blur(1px);
+}
+
+#toast-container {
+  position: absolute; top: 90px; left: 50%; transform: translateX(-50%);
+  display: flex; flex-direction: column; gap: 6px; align-items: center;
+}
+.toast {
+  background: rgba(20,14,8,0.85);
+  border: 2px solid var(--ember);
+  color: var(--parchment);
+  padding: 6px 16px; border-radius: 6px;
+  font-family: var(--font-fancy);
+  animation: fadeInOut 3s forwards;
+}
+@keyframes fadeInOut {
+  0% { opacity: 0; transform: translateY(-6px); }
+  10% { opacity: 1; transform: translateY(0); }
+  85% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+/* ---------------- Inventory / Crafting grids ---------------- */
+.item-grid {
+  display: grid; grid-template-columns: repeat(9, 1fr); gap: 6px;
+  margin-bottom: 16px;
+}
+.item-slot {
+  aspect-ratio: 1; background: linear-gradient(180deg, #d9c497, #b89a63);
+  border: 2px solid var(--wood-dark); border-radius: 4px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 22px; position: relative; cursor: pointer;
+}
+.item-slot .count { position: absolute; bottom: 1px; right: 3px; font-size: 10px; font-weight: bold; }
+.armor-row { display: flex; align-items: center; gap: 10px; justify-content: center; margin-bottom: 12px; }
+.armor-row .item-slot { width: 50px; }
+
+.recipe-list { display: flex; flex-direction: column; gap: 8px; max-height: 50vh; overflow-y: auto; margin-bottom: 16px; }
+.recipe-card {
+  display: flex; align-items: center; gap: 12px;
+  background: rgba(180,150,100,0.3);
+  border: 2px solid var(--wood-mid); border-radius: 6px;
+  padding: 8px 12px; cursor: pointer;
+  transition: background 0.15s;
+}
+.recipe-card:hover { background: rgba(217,119,47,0.35); }
+.recipe-card.disabled { opacity: 0.45; cursor: not-allowed; }
+.recipe-icon { font-size: 26px; }
+.recipe-info { flex: 1; text-align: left; }
+.recipe-name { font-weight: bold; }
+.recipe-cost { font-size: 12px; opacity: 0.85; }
+
+.faction-list { display: flex; flex-direction: column; gap: 10px; margin-bottom: 16px; max-height: 55vh; overflow-y: auto; }
+.faction-card { border: 2px solid var(--wood-mid); border-radius: 6px; padding: 10px 14px; text-align: left; background: rgba(180,150,100,0.25); }
+.faction-name { font-family: var(--font-display); font-weight: bold; }
+.faction-standing { font-size: 13px; font-style: italic; }
+.faction-rep-bar { height: 8px; border-radius: 4px; background: rgba(0,0,0,0.25); margin-top: 4px; overflow: hidden; }
+.faction-rep-fill { height: 100%; }
+
+.volume-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 10px 0; }
+.volume-row input { flex: 1; }
+
+/* ---------------- Mobile touch controls ---------------- */
+#mobile-controls {
+  position: absolute; inset: 0; z-index: 25; pointer-events: none;
+}
+#joystick-move {
+  position: absolute; left: 20px; bottom: 24px;
+  width: 100px; height: 100px; border-radius: 50%;
+  background: rgba(60,40,20,0.35); border: 3px solid rgba(217,119,47,0.6);
+  pointer-events: auto;
+}
+.joystick-knob {
+  position: absolute; top: 50%; left: 50%; width: 44px; height: 44px;
+  margin: -22px 0 0 -22px; border-radius: 50%;
+  background: rgba(217,119,47,0.75); border: 2px solid #2b1c10;
+  transition: transform 0.05s linear;
+}
+#look-pad {
+  position: absolute; right: 0; top: 0; bottom: 140px; width: 55%;
+  pointer-events: auto;
+}
+#mobile-action-buttons {
+  position: absolute; right: 16px; bottom: 24px;
+  display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px;
+  pointer-events: auto;
+}
+#mobile-bottom-buttons {
+  position: absolute; left: 130px; bottom: 20px;
+  display: flex; gap: 8px;
+  pointer-events: auto;
+}
+.round-btn {
+  width: 56px; height: 56px; border-radius: 50%;
+  background: rgba(60,40,20,0.55); border: 2px solid rgba(217,119,47,0.7);
+  color: var(--parchment); font-size: 22px;
+  display: flex; align-items: center; justify-content: center;
+  pointer-events: auto;
+}
+.round-btn.big { width: 68px; height: 68px; font-size: 28px; background: rgba(120,20,20,0.6); }
+.round-btn.small { width: 44px; height: 44px; font-size: 18px; }
+.round-btn.active { background: rgba(217,119,47,0.85); }
+
+#btn-menu-mobile {
+  position: absolute; top: 14px; left: 50%; transform: translateX(-50%);
+  z-index: 30; width: 40px; height: 40px; font-size: 18px;
+}
+
+/* Desktop: hide mobile controls & pointer indicator by default; shown via JS when mobile detected */
+@media (hover: hover) and (pointer: fine) {
+  #mobile-controls { display: none; }
+}
+
+@media (max-width: 720px) {
+  .wood-frame { padding: 18px; }
+  .howto-grid { grid-template-columns: 1fr; }
+  #hud-top-left { width: 160px; }
+  .stat-bar { height: 11px; }
+}

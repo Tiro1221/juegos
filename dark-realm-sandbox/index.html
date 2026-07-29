@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="theme-color" content="#0d0a08" />
+    <title>Dark Realm — Reinos en Sombra</title>
+    <link rel="stylesheet" href="/src/ui/style.css" />
+  </head>
+  <body>
+    <div id="app">
+      <canvas id="game-canvas"></canvas>
+
+      <!-- ============ LOADING SCREEN ============ -->
+      <div id="loading-screen" class="parchment-overlay">
+        <div class="loading-inner">
+          <h1 class="game-title">DARK REALM<span class="subtitle">Reinos en Sombra</span></h1>
+          <div class="loading-bar-frame">
+            <div id="loading-bar-fill"></div>
+          </div>
+          <p id="loading-text">Forjando el mundo...</p>
+        </div>
+      </div>
+
+      <!-- ============ MAIN MENU ============ -->
+      <div id="main-menu" class="parchment-overlay hidden">
+        <div class="menu-panel wood-frame">
+          <h1 class="game-title">DARK REALM<span class="subtitle">Reinos en Sombra</span></h1>
+          <p class="lore-blurb">Un reino de fantasía oscura donde antiguas civilizaciones yacen en ruinas, aldeas luchan por sobrevivir y facciones en guerra disputan el destino de las tierras de Emberfall.</p>
+          <button id="btn-new-world" class="btn-medieval">⚔ Comenzar Aventura</button>
+          <button id="btn-continue" class="btn-medieval">📜 Continuar Partida</button>
+          <button id="btn-how-to-play" class="btn-medieval btn-secondary">❔ Cómo Jugar</button>
+          <div class="menu-footer">Compatible con teclado/ratón y pantalla táctil</div>
+        </div>
+      </div>
+
+      <!-- ============ HOW TO PLAY ============ -->
+      <div id="howto-screen" class="parchment-overlay hidden">
+        <div class="menu-panel wood-frame">
+          <h2 class="panel-title">Manual del Aventurero</h2>
+          <div class="howto-grid">
+            <div><b>WASD / Joystick</b> — Moverse</div>
+            <div><b>Ratón / Deslizar</b> — Mirar</div>
+            <div><b>Click Izq. / ⚔</b> — Atacar / Minar</div>
+            <div><b>Click Der. / 🖐</b> — Colocar bloque / Usar</div>
+            <div><b>E / ✋</b> — Interactuar</div>
+            <div><b>1-9</b> — Seleccionar objeto</div>
+            <div><b>Espacio</b> — Saltar</div>
+            <div><b>Shift</b> — Correr</div>
+            <div><b>Ctrl</b> — Agacharse</div>
+            <div><b>I</b> — Inventario</div>
+            <div><b>M</b> — Mapa</div>
+            <div><b>Esc</b> — Menú de pausa</div>
+          </div>
+          <button id="btn-close-howto" class="btn-medieval">Entendido</button>
+        </div>
+      </div>
+
+      <!-- ============ HUD ============ -->
+      <div id="hud" class="hidden">
+        <div id="hud-top-left">
+          <div class="stat-bar-wrap">
+            <div class="stat-icon">❤</div>
+            <div class="stat-bar health"><div id="bar-health" class="stat-fill"></div></div>
+          </div>
+          <div class="stat-bar-wrap">
+            <div class="stat-icon">⚡</div>
+            <div class="stat-bar stamina"><div id="bar-stamina" class="stat-fill"></div></div>
+          </div>
+          <div class="stat-bar-wrap">
+            <div class="stat-icon">🍖</div>
+            <div class="stat-bar hunger"><div id="bar-hunger" class="stat-fill"></div></div>
+          </div>
+          <div class="stat-bar-wrap">
+            <div class="stat-icon">🌡</div>
+            <div class="stat-bar warmth"><div id="bar-warmth" class="stat-fill"></div></div>
+          </div>
+        </div>
+
+        <div id="hud-top-right">
+          <div id="clock-badge" class="wood-badge">
+            <span id="clock-icon">☀</span>
+            <span id="clock-text">06:00</span>
+          </div>
+          <div id="season-badge" class="wood-badge">🌱 Primavera</div>
+          <div id="biome-badge" class="wood-badge">Llanuras del Reino</div>
+          <div id="weather-badge" class="wood-badge hidden">🌧</div>
+        </div>
+
+        <div id="crosshair">+</div>
+        <div id="mining-progress-wrap" class="hidden"><div id="mining-progress-fill"></div></div>
+
+        <div id="interact-hint" class="wood-badge hidden">Pulsa E para interactuar</div>
+
+        <div id="hotbar"></div>
+
+        <div id="mount-hint" class="wood-badge hidden">Pulsa E para montar</div>
+
+        <div id="damage-vignette"></div>
+        <div id="water-overlay" class="hidden"></div>
+
+        <div id="toast-container"></div>
+      </div>
+
+      <!-- ============ INVENTORY / CRAFTING PANEL ============ -->
+      <div id="inventory-screen" class="parchment-overlay hidden">
+        <div class="menu-panel wood-frame inventory-panel">
+          <h2 class="panel-title">Inventario</h2>
+          <div id="inventory-grid" class="item-grid"></div>
+          <div class="armor-row">
+            <span>Armadura:</span>
+            <div id="armor-slot" class="item-slot"></div>
+          </div>
+          <button id="btn-close-inventory" class="btn-medieval">Cerrar (I)</button>
+        </div>
+      </div>
+
+      <div id="crafting-screen" class="parchment-overlay hidden">
+        <div class="menu-panel wood-frame crafting-panel">
+          <h2 id="crafting-title" class="panel-title">Banco de Carpintero</h2>
+          <div id="recipe-list" class="recipe-list"></div>
+          <button id="btn-close-crafting" class="btn-medieval">Cerrar</button>
+        </div>
+      </div>
+
+      <div id="chest-screen" class="parchment-overlay hidden">
+        <div class="menu-panel wood-frame">
+          <h2 class="panel-title">Cofre</h2>
+          <div id="chest-grid" class="item-grid"></div>
+          <button id="btn-close-chest" class="btn-medieval">Cerrar</button>
+        </div>
+      </div>
+
+      <!-- ============ MAP / FACTIONS ============ -->
+      <div id="map-screen" class="parchment-overlay hidden">
+        <div class="menu-panel wood-frame">
+          <h2 class="panel-title">Facciones de Emberfall</h2>
+          <div id="faction-list" class="faction-list"></div>
+          <button id="btn-close-map" class="btn-medieval">Cerrar (M)</button>
+        </div>
+      </div>
+
+      <!-- ============ PAUSE MENU ============ -->
+      <div id="pause-screen" class="parchment-overlay hidden">
+        <div class="menu-panel wood-frame">
+          <h2 class="panel-title">Pausa</h2>
+          <button id="btn-resume" class="btn-medieval">Reanudar</button>
+          <div class="volume-row"><label>Música 🎻</label><input id="vol-music" type="range" min="0" max="1" step="0.05" value="0.5" /></div>
+          <div class="volume-row"><label>Ambiente 🌲</label><input id="vol-ambient" type="range" min="0" max="1" step="0.05" value="0.55" /></div>
+          <div class="volume-row"><label>Efectos 🔔</label><input id="vol-sfx" type="range" min="0" max="1" step="0.05" value="0.8" /></div>
+          <button id="btn-quit-menu" class="btn-medieval btn-secondary">Salir al Menú</button>
+        </div>
+      </div>
+
+      <!-- ============ DEATH SCREEN ============ -->
+      <div id="death-screen" class="parchment-overlay hidden">
+        <div class="menu-panel wood-frame">
+          <h2 class="panel-title">Has Caído en las Sombras</h2>
+          <p class="lore-blurb">Tu cuerpo yace frío, pero las leyendas de Emberfall nunca terminan aquí...</p>
+          <button id="btn-respawn" class="btn-medieval">Renacer</button>
+        </div>
+      </div>
+
+      <!-- ============ MOBILE TOUCH CONTROLS ============ -->
+      <div id="mobile-controls" class="hidden">
+        <div id="joystick-move" class="joystick">
+          <div class="joystick-knob"></div>
+        </div>
+        <div id="look-pad"></div>
+        <div id="mobile-action-buttons">
+          <button id="btn-inventory-mobile" class="round-btn">🎒</button>
+          <button id="btn-interact" class="round-btn">✋</button>
+          <button id="btn-use" class="round-btn">🖐</button>
+          <button id="btn-attack" class="round-btn big">⚔</button>
+        </div>
+        <div id="mobile-bottom-buttons">
+          <button id="btn-crouch" class="round-btn small">⬇</button>
+          <button id="btn-sprint" class="round-btn small">🏃</button>
+          <button id="btn-jump" class="round-btn small">⤴</button>
+        </div>
+      </div>
+
+      <button id="btn-menu-mobile" class="round-btn hidden" id="mobile-menu-toggle">☰</button>
+    </div>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
