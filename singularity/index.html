@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+<title>SINGULARITY — Agujero negro relativista en tiempo real</title>
+<meta name="description" content="Un agujero negro de Schwarzschild trazado fotón a fotón en tu navegador: lente gravitacional, disco de acreción con efecto Doppler relativista, corrimiento al rojo y dilatación temporal." />
+<meta name="theme-color" content="#000000" />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22%3E%3Cellipse cx=%2216%22 cy=%2216%22 rx=%2215%22 ry=%224%22 fill=%22%23ffb36b%22/%3E%3Ccircle cx=%2216%22 cy=%2216%22 r=%226%22 fill=%22%23000%22 stroke=%22%23ffd9b0%22/%3E%3C/svg%3E" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500&family=JetBrains+Mono:wght@300;400&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="./style.css" />
+</head>
+<body data-mode="intro">
+<canvas id="c"></canvas>
+
+<!-- ───────────── intro ───────────── -->
+<section id="intro">
+  <div class="intro-inner">
+    <p class="kicker">Relatividad general · trazado de rayos en GPU</p>
+    <h1>Singularity</h1>
+    <p class="lede">Cada píxel de esta imagen es un fotón viajando hacia atrás en el tiempo a través del espacio-tiempo curvo de un agujero negro. Nada está pre-renderizado.</p>
+    <div class="cta">
+      <button id="enter" class="primary">Entrar <span>con sonido</span></button>
+      <button id="enter-silent" class="ghost">en silencio</button>
+    </div>
+    <p class="hint">Recomendado: pantalla completa, auriculares, luces apagadas.</p>
+  </div>
+</section>
+
+<!-- ───────────── HUD ───────────── -->
+<header id="top" class="ui">
+  <div class="brand"><span class="dot"></span>SINGULARITY <em>/ Schwarzschild · a = 0</em></div>
+  <nav class="modes">
+    <button data-mode-btn="tour">Cinemático</button>
+    <button data-mode-btn="orbit">Órbita libre</button>
+    <button data-mode-btn="dive" class="danger">Caer ↓</button>
+  </nav>
+  <div class="tools">
+    <button id="btn-audio" title="Sonido (M)">♪</button>
+    <button id="btn-shot" title="Captura (P)">◉</button>
+    <button id="btn-full" title="Pantalla completa (F)">⤢</button>
+    <button id="btn-hide" title="Ocultar interfaz (H)">◌</button>
+    <button id="btn-panel" title="Parámetros (Tab)">⚙</button>
+  </div>
+</header>
+
+<aside id="telemetry" class="ui">
+  <div class="zone" id="h-zone">Espacio lejano</div>
+  <div class="gauge"><div class="track"><i id="h-bar"></i></div><span>horizonte</span><span>80 Rₛ</span></div>
+  <dl>
+    <dt>Distancia</dt><dd id="h-r">—</dd>
+    <dt></dt><dd class="sub" id="h-km">—</dd>
+    <dt>Dilatación temporal</dt><dd id="h-dil">—</dd>
+    <dt>Vel. orbital local</dt><dd id="h-v">—</dd>
+    <dt>Marea (cuerpo 2 m)</dt><dd id="h-tidal">—</dd>
+  </dl>
+  <div class="clocks">
+    <div><span>Reloj lejano</span><b id="h-clock-out">0 s</b></div>
+    <div><span>Tu reloj</span><b id="h-clock-in">0 s</b></div>
+  </div>
+  <div class="fps" id="h-fps"></div>
+</aside>
+
+<aside id="panel" class="ui">
+  <h2>Física</h2>
+  <label>Masa
+    <select id="s-mass">
+      <option value="stellar">Estelar · 10 M☉</option>
+      <option value="sgra" selected>Sagitario A* · 4,3 millones M☉</option>
+      <option value="m87">M87* · 6.500 millones M☉</option>
+      <option value="ton618">TON 618 · 66.000 millones M☉</option>
+    </select>
+  </label>
+  <label>Curvatura de la luz <output></output><input id="s-lensing" type="range" min="0" max="1" step="0.01" /></label>
+  <label>Doppler + corrimiento gravitacional <output></output><input id="s-doppler" type="range" min="0" max="1" step="0.01" /></label>
+  <label>Temperatura del disco <output></output><input id="s-temp" type="range" min="2000" max="30000" step="100" /></label>
+  <label>Luminosidad <output></output><input id="s-gain" type="range" min="0.2" max="4" step="0.01" /></label>
+  <label>Plasma volumétrico <output></output><input id="s-thick" type="range" min="0" max="2" step="0.01" /></label>
+  <label>Flujo del tiempo <output></output><input id="s-time" type="range" min="0" max="4" step="0.01" /></label>
+
+  <h2>Cámara</h2>
+  <label>Bloom <output></output><input id="s-bloom" type="range" min="0" max="3" step="0.01" /></label>
+  <label>Exposición <output></output><input id="s-exposure" type="range" min="0.2" max="3" step="0.01" /></label>
+  <label>Calidad
+    <select id="s-quality">
+      <option value="auto" selected>Automática</option>
+      <option value="low">Baja</option><option value="med">Media</option>
+      <option value="high">Alta</option><option value="ultra">Ultra</option>
+    </select>
+  </label>
+
+  <h2>Estilos</h2>
+  <div class="presets">
+    <button data-preset="physical" class="on">Físico</button>
+    <button data-preset="interstellar">Interstellar</button>
+    <button data-preset="quasar">Cuásar</button>
+    <button data-preset="newton">Sin relatividad</button>
+  </div>
+
+  <details>
+    <summary>¿Qué estoy viendo?</summary>
+    <p><b>La sombra</b> — la región negra es ~2,6 veces mayor que el horizonte: todo fotón que pase por ahí cae dentro.</p>
+    <p><b>El arco superior</b> — es la parte <i>trasera</i> del disco, cuya luz se curva por encima del agujero hacia ti.</p>
+    <p><b>El anillo fino</b> — el anillo de fotones: luz que dio una o más vueltas completas antes de escapar.</p>
+    <p><b>Asimetría</b> — el lado que se acerca a ~50% de c brilla y se azula (<i>relativistic beaming</i>); el que se aleja se apaga y enrojece.</p>
+    <p><b>Borde interior</b> — la ISCO, a 3 Rₛ. Más cerca no hay órbitas estables.</p>
+  </details>
+  <p class="keys"><kbd>Arrastrar</kbd> orbitar · <kbd>Rueda</kbd> zoom · <kbd>C</kbd> cinemático · <kbd>D</kbd> caer · <kbd>Espacio</kbd> pausa · <kbd>H</kbd> ocultar · <kbd>P</kbd> captura</p>
+</aside>
+
+<div id="caption"><h3></h3><p></p></div>
+<div id="fatal" hidden><h3>No se pudo iniciar</h3><p></p></div>
+
+<script type="module" src="./main.js"></script>
+</body>
+</html>
